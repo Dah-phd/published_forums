@@ -1,0 +1,38 @@
+{% extends 'books/base.html' %}
+
+
+{% block content %}
+<div class="row row-cols-1 row-cols-sm-1 row-cols-md-2 g-2">
+    {% for book in books %}
+    <div class="col">
+        <div class="card shadow-sm">
+            <a href="{% url 'forum' %}{{ book.pk }}">
+                <img height="100%" width="100%" src="{{ book.cover.url }}" target="_blank">
+            </a>
+            <div class="card-body">
+                <a href="{% url 'forum' %}{{ book.pk }}" style="text-decoration: none; color: black;">
+                    <h2 class="fst-italic" style="color:red">{{book.book}}</h2>
+                </a>
+                <hr>
+                <h4 class="fst-italic">{{ book.line }}</h4>
+                <hr>
+                <p class="card-text">
+                    <span style="white-space: pre-line">{{ book.abstract }}</span>
+                </p>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="btn-group">
+                        <a type="button" class="btn btn-sm btn-outline-secondary" href="{{ book.pdf.url }}"
+                            class="button" target="_blank">
+                            More
+                        </a>
+                        <a type="button" class="btn btn-sm btn-outline-secondary" href="{% url 'forum' %}{{ book.pk }}">
+                            Forum
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock content %}

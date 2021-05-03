@@ -1,0 +1,29 @@
+{% extends 'books/base.html' %}
+{% load crispy_forms_tags %}
+{% block nav %}
+<li class="nav-item">
+    {% if user.is_authenticated %}
+    <a class="nav-link" href="{% url 'profile' %}">{{ user.username }}</a>
+    {% else %}
+    <a class="nav-link" onclick="$('#login_modal').modal('show')" role="button">Login</a>
+    {% endif %}
+</li>
+<li class="nav-item"><a class="nav-link" href="{% url 'forum' %}">Forum</a></li>
+<li class="nav-item"><a class="nav-link" href="{% url 'connect' %}">Contact</a></li>
+<li class="nav-item">
+    {% if user.is_authenticated %}
+    <a class="nav-link" onclick="logut_function()" role="button">Logout</a>
+    {% else %}
+    <a class="nav-link active" aria-current="page" href="{% url 'create_user' %}">Create account</a>
+    {% endif %}
+</li>
+{% endblock nav %}
+{% block content %}
+<form method='POST'>
+    {% csrf_token %}
+    {{ form|crispy }}
+    <div>
+        <button type="submit" class="btn btn-dark">Create account</button>
+    </div>
+</form>
+{% endblock content %}

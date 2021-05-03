@@ -1,0 +1,318 @@
+{% extends 'books/base.html' %}
+{% load crispy_forms_tags %}
+{% block scripts %}
+{% load static %}
+<script src="{% static 'js/acc/profile.js' %}"></script>
+<script>
+    var DM_url = "{% url 'send_DM' %}"
+    var friend_url = "{% url 'add_friend' %}"
+    var edit_url = "{% url 'edit_comment_api' %}"
+    var serialized_friend_list = {{ friends_serialized | safe }}
+</script>
+{% endblock %}
+{% block nav %}
+<li class="nav-item">
+    <a class="nav-link active" aria-current="page" href="{% url 'profile' %}">{{ user.username }}</a>
+</li>
+<li class="nav-item"><a class="nav-link" href="{% url 'forum' %}">Forum</a></li>
+<li class="nav-item"><a class="nav-link" href="{% url 'connect' %}">Contact</a></li>
+<li class="nav-item">
+    <a class="nav-link" onclick="logut_function()" role="button">Logout</a>
+</li>
+{% endblock nav %}
+{% block content %}
+<nav>
+    <div class="nav nav-tabs" id="nav-tab" role="tablist">
+        <button class="nav-link active" id="nav-outbox-tab" data-bs-toggle="tab" data-bs-target="#nav-outbox"
+            type="button" role="tab" aria-controls="nav-outbox" aria-selected="false"
+            onclick="location.reload()">Outbox</button>
+        <button class="nav-link" id="nav-inbox-tab" data-bs-toggle="tab" data-bs-target="#nav-inbox" type="button"
+            role="tab" aria-controls="nav-inbox" aria-selected="true">Inbox</button>
+        <button class="nav-link" id="nav-comments-tab" data-bs-toggle="tab" data-bs-target="#nav-comments" type="button"
+            role="tab" aria-controls="nav-comments" aria-selected="false">Comments</button>
+        <button class="nav-link" id="nav-friend_list-tab" data-bs-toggle="tab" data-bs-target="#nav-friend_list"
+            type="button" role="tab" aria-controls="nav-friend_list" aria-selected="false">Friend list</button>
+        <button class="nav-link" id="nav-accmanage-tab" data-bs-toggle="tab" data-bs-target="#nav-accmanage"
+            type="button" role="tab" aria-controls="nav-accmanage" aria-selected="false">Account settings</button>
+    </div>
+</nav>
+<div class="tab-content" id="nav-tabContent">
+    <!-- outbox -->
+    <div class="tab-pane fade show active" id="nav-outbox" role="tabpanel" aria-labelledby="nav-outbox">
+        <div class="accordion" id='outbox'>
+            {% if outbox %}
+            {% for message in outbox %}
+            {% if not message.deleted_sender %}
+            <div class="accordion-item">
+                <div id="{{ message.pk }}_wrapper">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="false"
+                            aria-controls="collapse{{ forloop.counter }}">
+                            <span class="fst-italic" style="white-space: pre;">To: </span>
+                            {{ message.reciever }} | <span class="fst-italic" style="white-space: pre;"> On: </span>
+                            {{ message.message_subject }} | ({{ message.created }})
+                        </button>
+                    </h2>
+                    <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse"
+                        aria-labelledby="heading{{ forloop.counter }}" data-bs-parent="#output">
+                        <div class="accordion-body">
+                            {{ message.message }}
+                            <span class="btn btn-dark" style="float: right;" role="button"
+                                onclick="send_DM('{{ message.reciever.pk }}', '{{ message.reciever.username }}')">
+                                Message
+                            </span>
+                            <span class="btn btn-danger" style="float: right;" role="button"
+                                onclick="edit_DM('{{ message.pk }}', 'delete', 'sender');$('#{{ message.pk }}_wrapper').remove()">
+                                Delete
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+            {% else %}
+            <p>No messages to show ...</p>
+            {% endif %}
+        </div>
+    </div>
+    <!-- inbox -->
+    <div class=" tab-pane fade" id="nav-inbox" role="tabpanel" aria-labelledby="nav-inbox">
+        <div class="accordion" id='inbox'>
+            {% if inbox %}
+            {% for message in inbox %}
+            {% if not message.deleted_reciever %}
+            <div class="accordion-item">
+                <div id="{{ message.pk }}_wrapper">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="false"
+                            aria-controls="collapse{{ forloop.counter }}"
+                            onclick="edit_DM('{{ message.pk }}', 'read', 'reciever')">
+                            {% if message.new %}
+                            <span class="fst-italic fw-bolder" style="white-space: pre;">New! </span>
+                            {% endif %}
+                            <span class="fst-italic" style="white-space: pre;">From: </span>
+                            {{ message.sender }} |
+                            <span class="fst-italic" style="white-space: pre;"> On: </span>
+                            {{ message.message_subject }} | ({{ message.created }})
+                        </button>
+                    </h2>
+                    <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse"
+                        aria-labelledby="heading{{ forloop.counter }}" data-bs-parent="#inbox">
+                        <div class="accordion-body">
+                            {{ message.message }}
+                            <span class="btn btn-dark" style="float: right;" role="button"
+                                onclick="send_DM('{{ message.sender.pk }}', '{{ message.sender.username }}')">
+                                Reply
+                            </span>
+                            <span class="btn btn-danger" style="float: right;" role="button"
+                                onclick="edit_DM('{{ message.pk }}', 'delete', 'reciever'); ;$('#{{ message.pk }}_wrapper').remove()">
+                                Delete
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+            {% else %}
+            <p>No new messages ...</p>
+            {% endif %}
+        </div>
+    </div>
+    <!-- comments -->
+    <div class="tab-pane fade" id="nav-comments" role="tabpanel" aria-labelledby="nav-comments">
+        <div class="accordion" id='comments'>
+            {% if comments %}
+            {% for comment in comments %}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="false"
+                        aria-controls="collapse{{ forloop.counter }}">
+                        <span class="fst-italic" style="white-space: pre;">From: </span>
+                        <div id="{{ comment.pk }}_title">{{ comment.post_title }}</div>
+                        <span style="white-space: pre;"> | {{ comment.location }}</span>
+                    </button>
+                </h2>
+                <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse"
+                    aria-labelledby="heading{{ forloop.counter }}" data-bs-parent="#comments">
+                    <div class="accordion-body">
+                        <dvi id="{{ comment.pk }}_text">{{ comment.text }}</dvi>
+                        <hr>
+                        <p class="text-muted">
+                            From: {{ comment.created }}({{ comment.last_modified }})
+                            <span style="float: right;" class="btn btn-dark" role="button"
+                                onclick="edit_comment('{{ comment.pk }}')">
+                                Edit
+                            </span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p>No comments to display ...</p>
+            {% endif %}
+        </div>
+    </div>
+    <!-- friendlist -->
+    <div class="tab-pane fade" id="nav-friend_list" role="tabpanel" aria-labelledby="nav-friend_list">
+        <div id="friend_list">
+            <ul class="list-group">
+                {% for friend in friends %}
+                <li class="list-group-item" id='{{ friend.pk }}_wrapper'>
+                    {{ friend.friend }}
+                    <span style="float: right;" role="button" class="btn btn-danger"
+                        onclick="delete_friend('{{ friend.friend.pk }}', '{{ friend.pk }}_wrapper')">Remove</span>
+                    <span style="float: right;" role="button" class="btn btn-dark"
+                        onclick="send_DM('{{ friend.friend.pk }}','{{ friend.friend.username }}')">
+                        Message
+                    </span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    <!-- account management (in dev) -->
+    <div class="tab-pane fade" id="nav-accmanage" role="tabpanel" aria-labelledby="nav-accmanage">
+        <div style="text-align: center;">
+            <button class="btn btn-dark" onclick="$('#password_modal').modal('show')">Change
+                password</button>
+        </div>
+    </div>
+</div>
+<!-- password modal -->
+<div class="modal fade" id="password_modal" tabindex="-1" aria-labelledby="password_modal_label" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="password_modal_title">Login:</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" id="password_form">
+                    {% csrf_token %}
+                    <div class="container">
+                        <div id="div_id_old_password" class="control-group"> <label for="id_old_password"
+                                class="control-label requiredField">
+                                Old password<span class="asteriskField">*</span> </label>
+                            <div class="controls"> <input type="password" name="old_password"
+                                    autocomplete="current-password" autofocus="" class="textinput textInput" required=""
+                                    id="id_old_password"> </div>
+                        </div>
+                        <div id="div_id_new_password1" class="control-group"> <label for="id_new_password1"
+                                class="control-label requiredField">
+                                New password<span class="asteriskField">*</span> </label>
+                            <div class="controls"> <input type="password" name="new_password1"
+                                    autocomplete="new-password" class="textinput textInput" required=""
+                                    id="id_new_password1">
+                                <p id="hint_id_new_password1" class="help-block"></p>
+                                <ul>
+                                    <li>Your password can’t be too similar to your other personal
+                                        information.</li>
+                                    <li>Your password must contain at least 8 characters.</li>
+                                    <li>Your password can’t be a commonly used password.</li>
+                                    <li>Your password can’t be entirely numeric.</li>
+                                </ul>
+                                <p></p>
+                            </div>
+                        </div>
+                        <div id="div_id_new_password2" class="control-group"> <label for="id_new_password2"
+                                class="control-label requiredField">
+                                New password confirmation<span class="asteriskField">*</span> </label>
+                            <div class="controls"> <input type="password" name="new_password2"
+                                    autocomplete="new-password" class="textinput textInput" required=""
+                                    id="id_new_password2"> </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button id="login_modal_button" type="button" class="btn btn-dark"
+                    onclick="$('#password_form').submit()">Login</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- edit post modal -->
+<div class="modal fade" id="comment_edit_modal" tabindex="-1" aria-labelledby="comment_edit_label" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="comment_edit_title">Edit comment:</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method='POST' id="comment_edit_form">
+                    {% csrf_token %}
+                    <div style="text-align: center;">
+                        <div class="control-group"> <label class="control-label">Title: </label>
+
+                            <div class="controls"> <input type="text" name="title" autofocus="" autocapitalize="none"
+                                    maxlength="150" class="textinput textInput" id="edit_new_title"
+                                    style="width: 100%;"> </div>
+                        </div>
+                        <div class="control-group"> <label class="control-label">Comment: </label>
+                            <div class="controls"> <textarea type="text" name="text" autofocus="" autocapitalize="none"
+                                    maxlength="3000" class="form-control" style="height: 300px;"
+                                    id="edit_new_text"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="hidden" name="id" id="comment_edit_id">
+                    <input type="hidden" name="type" id="comment_edit_type">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-danger"
+                    onclick="$('#comment_edit_type').val('delete') ; $('#comment_edit_form').submit();">
+                    DELETE
+                </button>
+                <button id="edit_comment_btn" type="button" class="btn btn-dark">
+                    <span id='edit_loading' class="spinner-border spinner-border-sm" role="status"
+                        aria-hidden="true"></span>
+                    SAVE
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- DM modal -->
+<div class="modal fade" id="DM_modal" tabindex="-1" aria-labelledby="DM_modal_label" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" onclick id="DM_modal_title"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center;">
+                    <div class="control-group"> <label class="control-label">Subject: </label>
+                        <div class="controls"> <input type="text" style="width: 100%;" name="title" autofocus=""
+                                autocapitalize="none" maxlength="150" class="textinput textInput" id="message_subject">
+                        </div>
+                    </div>
+                    <div class="control-group"> <label class="control-label">Message: </label>
+                        <div class="controls"> <textarea type="text" name="text" autofocus="" autocapitalize="none"
+                                maxlength="3000" class="form-control" id="DM_message"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button id="DM_modal_button" type="button" class="btn btn-dark">
+                    <span id='DM_loading' class="spinner-border spinner-border-sm" role="status"
+                        aria-hidden="true"></span>
+                    Send
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

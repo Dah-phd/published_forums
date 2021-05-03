@@ -1,0 +1,276 @@
+{% extends 'books/base.html' %}
+{% load crispy_forms_tags %}
+{% block scripts %}
+{% load static %}
+{% if user.is_authenticated %}
+<script src="{% static 'js/forums/forum_controls.js' %}"></script>
+<script>
+    var token = "{{ csrf_token }}"
+    var DM_url = "{% url 'send_DM' %}"
+    var friend_url = "{% url 'add_friend' %}"
+    var serialized_friend_list = {{ friends_serialized | safe }}
+</script>
+{% endif %}
+{% endblock %}
+
+{% block nav %}
+<li class="nav-item">
+    {% if user.is_authenticated %}
+    <a class="nav-link" href="{% url 'profile' %}">{{ user.username }}</a>
+    {% else %}
+    <a class="nav-link" onclick="$('#login_modal').modal('show')" role="button">Login</a>
+    {% endif %}
+</li>
+<li class="nav-item"><a class="nav-link active" aria-current="page" href="{% url 'forum' %}">Forum</a></li>
+<li class="nav-item"><a class="nav-link" href="{% url 'connect' %}">Contact</a></li>
+<li class="nav-item">
+    {% if user.is_authenticated %}
+    <a class="nav-link" onclick="logut_function()" role="button">Logout</a>
+    {% else %}
+    <a class="nav-link" href="{% url 'create_user' %}">Create account</a>
+    {% endif %}
+</li>
+{% endblock nav %}
+
+{% block content %}
+<div class="p-4 p-md-5 mb-4 text-white rounded bg-danger">
+    <div class="col-md-12 px-0">
+        <h1 class="display-4 fst-italic">{{ location }}</h1>
+        <p class="lead my-3">{{ location.description }}</p>
+        <div class="row">
+            <a type="button" class="btn btn-danger" style="width: min-content; white-space: nowrap;"
+                href="{% url 'forum' %}">
+                forums >
+            </a>
+            <a type="button" class="btn btn-danger" style="width: min-content;white-space: nowrap;"
+                href="{% url 'forum' %}{{book.pk}}">
+                {{ location.book }} >
+            </a>
+            <div class="btn-group" style="width: min-content; height: min-content; white-space: nowrap;">
+                {% for discussion in discussions %}
+                {% if location.discussion == discussion.discussion %}
+                <a type="button" class="btn btn-danger"
+                    href="{% url 'forum' %}{{ discussion.book.pk }}/{{ discussion.discussion }}/0">
+                    {{ discussion.discussion }}</a>
+                <button type="button" class="btn btn-danger dropdown-toggle dropdown-toggle-split"
+                    data-bs-toggle="dropdown" aria-expanded="false">
+                    <span class="visually-hidden">Toggle Dropdown</span>
+                </button>
+                {% endif %}
+                {% endfor %}
+                <ul class="dropdown-menu">
+                    {% for discussion in discussions %}
+                    {% if location.discussion != discussion.discussion %}
+                    <li>
+                        <a class="dropdown-item"
+                            href="{% url 'forum' %}{{ discussion.book.pk }}/{{ discussion.discussion }}/0">
+                            {{ discussion.discussion }}
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+            </p>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-12">
+        {% for comment in comments %}
+        <article class="blog-post">
+            <h2 class="blog-post-title fst-italic" id='{{ comment.pk }}_title'>{{ comment.post_title }}</h2>
+            <hr>
+            {% if comment.user.username == user.username %}
+
+            {% if not comment.last_modified %}
+            <p class="fst-italic text-muted" onclick="edit('{{ comment.pk }}')">
+                {{ comment.created}} / <strong role="button">EDIT</strong>
+            </p>
+            {% else %}
+            <p class="fst-italic text-muted" onclick="edit('{{ comment.pk }}')">
+                {{ comment.created}}({{comment.last_modified}}) / <strong role="button">EDIT</strong>
+            </p>
+            {% endif %}
+
+            {% elif user.is_authenticated and comment.user.pk != 7 %}
+
+            {% if not comment.last_modified %}
+            <p class="fst-italic text-muted" role="button"
+                onclick="send_DM('{{comment.user.pk}}', '{{comment.user.username}}')">
+                {{ comment.created}} / By {{ comment.user.username }} (send DM)
+            </p>
+            {% else %}
+            <p class="fst-italic text-muted" role="button"
+                onclick="send_DM('{{comment.user.pk}}', '{{comment.user.username}}')">
+                {{ comment.created}}({{comment.last_modified}}) / By
+                {{ comment.user.username }} (send DM)
+            </p>
+            {% endif %}
+
+            {% else %}
+
+            {% if not comment.last_modified %}
+            <p class="fst-italic text-muted" role="button">
+                {{ comment.created}} / By {{ comment.user.username }}
+            </p>
+            {% else %}
+            <p class="fst-italic text-muted" role="button">
+                {{ comment.created}}({{comment.last_modified}}) / By
+                {{ comment.user.username }}
+            </p>
+            {% endif %}
+
+            {% endif %}
+            <p><span id="{{ comment.pk }}_text" style="white-space: pre-line">{{ comment.text }}</span></p>
+            <hr style="height:20px;border:none;color:rgb(224, 11, 11);background-color:rgb(224, 11, 11);" />
+        </article>
+        {% endfor %}
+
+        <!-- paginator -->
+        {% if pages != 1 %}
+        <div style="margin: auto; width: 50%;">
+            <div id="copyright">
+                <ul class="menu">
+                    {% if page != 'first' %}
+                    <li>
+                        <a href="{% url 'forum' %}{{ location.book.pk }}/{{ location.discussion }}/1">
+                            first
+                        </a>
+                    </li>
+                    <li>
+                        <a
+                            href="{% url 'forum' %}{{ location.book.pk }}/{{ location.discussion }}/{{ current|add:'-1' }}">
+                            &#60&#60&#60
+                        </a>
+                    </li>
+                    {% else %}
+                    <li>
+                        <a href="{% url 'forum' %}{{ location.book.pk }}/{{ location.discussion }}/1">
+                            <strong>first(1)</strong>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if page == 'not' %}
+                    <li>
+                        <a href="{% url 'forum' %}{{ location.book.pk }}/{{ location.discussion }}/{{ current }}">
+                            <strong>{{ current }}</strong>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if page != 'last' %}
+                    <li>
+                        <a
+                            href="{% url 'forum' %}{{ location.book.pk }}/{{ location.discussion }}/{{ current|add:'1' }}">
+                            >>>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'forum' %}{{ location.book.pk }}/{{ location.discussion }}/0">
+                            last({{pages}})
+                        </a>
+                    </li>
+                    {% else %}
+                    <li>
+                        <a href="{% url 'forum' %}{{ location.book.pk }}/{{ location.discussion }}/0">
+                            <strong>last({{pages}})</strong>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- new post form -->
+        {% if page == 'last' %}
+        <h2 class="major"></h2>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name='type' value='new'>
+            {{ form|crispy }}
+            <button type="submit" class="btn btn-dark">Post</button>
+        </form>
+        {% endif %}
+
+    </div>
+    <div class="col-12">
+    </div>
+</div>
+<!-- edit post modal -->
+<div class="modal fade" id="comment_edit_modal" tabindex="-1" aria-labelledby="comment_edit_label" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="comment_edit_title">Edit comment:</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method='POST' id="comment_edit_form">
+                    {% csrf_token %}
+                    <div style="text-align: center;">
+                        <div class="control-group"> <label class="control-label">Title: </label>
+
+                            <div class="controls"> <input type="text" name="title" autofocus="" autocapitalize="none"
+                                    maxlength="150" class="textinput textInput" id="edit_new_title"
+                                    style="width: 100%;"> </div>
+                        </div>
+                        <div class="control-group"> <label class="control-label">Comment: </label>
+                            <div class="controls"> <textarea type="text" name="text" autofocus="" autocapitalize="none"
+                                    maxlength="3000" class="form-control" style="height: 300px;"
+                                    id="edit_new_text"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="hidden" name="id" id="comment_edit_id">
+                    <input type="hidden" name="type" id="comment_edit_type">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-danger"
+                    onclick="$('#comment_edit_type').val('delete') ; $('#comment_edit_form').submit();">
+                    DELETE
+                </button>
+                <button id="edit_comment_btn" type="button" class="btn btn-dark"
+                    onclick="$('#comment_edit_form').submit();">
+                    SAVE
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- DM modal -->
+<div class="modal fade" id="DM_modal" tabindex="-1" aria-labelledby="DM_modal_label" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" onclick id="DM_modal_title"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center;">
+                    <div class="control-group"> <label class="control-label">Subject: </label>
+                        <div class="controls"> <input style="width: 100%;" type="text" name="title" autofocus=""
+                                autocapitalize="none" maxlength="150" class="textinput textInput" id="message_subject">
+                        </div>
+                    </div>
+                    <div class="control-group"> <label class="control-label">Message: </label>
+                        <div class="controls"> <textarea type="text" name="text" autofocus="" autocapitalize="none"
+                                maxlength="3000" class="form-control" id="DM_message"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button id="DM_modal_button" type="button" class="btn btn-dark">
+                    <span id='DM_loading' class="spinner-border spinner-border-sm" role="status"
+                        aria-hidden="true"></span>
+                    Send
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
