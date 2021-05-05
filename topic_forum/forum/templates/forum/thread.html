@@ -130,55 +130,66 @@
         <!-- paginator -->
         {% if pages != 1 %}
         <div style="margin: auto; width: 50%;">
-            <div id="copyright">
-                <ul class="menu">
+            <nav aria-label="...">
+                <ul class="pagination">
                     {% if page != 'first' %}
-                    <li>
-                        <a href="{% url 'forum' %}{{ location.book.pk }}/{{ location.discussion }}/1">
-                            first
+                    <li class="page-item">
+                        <a class="page-link" href="{% url 'forum' %}{{ location.book.pk }}/{{ location.discussion }}/1">
+                            first(1)
                         </a>
                     </li>
-                    <li>
-                        <a
+                    <li class="page-item">
+                        <a class="page-link"
+                            href="{% url 'forum' %}{{ location.book.pk }}/{{ location.discussion }}/{{ current|add:'-1' }}">
+                            &#60&#60&#60
+                        </a>
+                    </li class="page-item">
+                    {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="{% url 'forum' %}{{ location.book.pk }}/{{ location.discussion }}/1">
+                            first(1)
+                        </a>
+                    </li>
+                    <li class="page-item disabled">
+                        <a class="page-link"
                             href="{% url 'forum' %}{{ location.book.pk }}/{{ location.discussion }}/{{ current|add:'-1' }}">
                             &#60&#60&#60
                         </a>
                     </li>
-                    {% else %}
-                    <li>
-                        <a href="{% url 'forum' %}{{ location.book.pk }}/{{ location.discussion }}/1">
-                            <strong>first(1)</strong>
+                    {% endif %}
+                    <li class="page-item active" aria-current="page">
+                        <a class="page-link"
+                            href="{% url 'forum' %}{{ location.book.pk }}/{{ location.discussion }}/{{ current }}">
+                            {{ current }}
                         </a>
                     </li>
-                    {% endif %}
-                    {% if page == 'not' %}
-                    <li>
-                        <a href="{% url 'forum' %}{{ location.book.pk }}/{{ location.discussion }}/{{ current }}">
-                            <strong>{{ current }}</strong>
-                        </a>
-                    </li>
-                    {% endif %}
                     {% if page != 'last' %}
-                    <li>
-                        <a
+                    <li class="page-item">
+                        <a class="page-link"
                             href="{% url 'forum' %}{{ location.book.pk }}/{{ location.discussion }}/{{ current|add:'1' }}">
                             >>>
                         </a>
                     </li>
-                    <li>
-                        <a href="{% url 'forum' %}{{ location.book.pk }}/{{ location.discussion }}/0">
+                    <li class="page-item">
+                        <a class="page-link" href="{% url 'forum' %}{{ location.book.pk }}/{{ location.discussion }}/0">
                             last({{pages}})
                         </a>
                     </li>
                     {% else %}
-                    <li>
-                        <a href="{% url 'forum' %}{{ location.book.pk }}/{{ location.discussion }}/0">
-                            <strong>last({{pages}})</strong>
+                    <li class="page-item disabled">
+                        <a class="page-link"
+                            href="{% url 'forum' %}{{ location.book.pk }}/{{ location.discussion }}/{{ current|add:'1' }}">
+                            >>>
+                        </a>
+                    </li>
+                    <li class="page-item disabled">
+                        <a class="page-link" href="{% url 'forum' %}{{ location.book.pk }}/{{ location.discussion }}/0">
+                            last({{pages}})
                         </a>
                     </li>
                     {% endif %}
                 </ul>
-            </div>
+            </nav>
         </div>
         {% endif %}
 
